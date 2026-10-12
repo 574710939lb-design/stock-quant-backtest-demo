@@ -1,0 +1,88 @@
+<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Stock Quant Offline Backtest Preview Kit – Demo</title>
+<style>
+body{font-family:-apple-system,"Segoe UI",Roboto,sans-serif;margin:0;background:#f5f7fa;color:#1d2433;line-height:1.55}
+.banner{background:#b23b00;color:#fff;text-align:center;font-weight:700;padding:10px}
+.wrap{max-width:1000px;margin:auto;padding:24px}header h1{margin:8px 0 4px}
+.card{background:#fff;border-radius:10px;padding:18px 22px;box-shadow:0 1px 3px #0002;margin:18px 0}
+pre{background:#0f172a;color:#e2e8f0;padding:12px;border-radius:6px;overflow-x:auto}
+img{max-width:100%;border-radius:6px;border:1px solid #dde}
+.tag{background:#5b2c83;color:#fff;font-size:12px;padding:2px 8px;border-radius:4px;font-weight:700}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:10px}
+.m{background:#f0f3f8;border-radius:6px;padding:8px}.m b{display:block;font-size:18px}
+button,select,input{font-size:15px;padding:6px 10px}footer{color:#667;font-size:13px;text-align:center;padding:20px}
+</style></head><body>
+<div class="banner">Educational software demo. Not investment advice.</div>
+<div class="wrap">
+<header><h1>Stock Quant Offline Backtest Preview Kit</h1>
+<p>A compact, dependency-free Node.js kit for <b>offline daily-bar backtesting</b> in research and education workflows. Ships with a deterministic synthetic demo dataset, verification script and English usage notes.</p></header>
+<img src="preview.png" alt="Product preview">
+
+<div class="card"><h2>Features</h2><ul>
+<li>Offline only: no network data path (external fetching is blocked and verified by a test)</li>
+<li>No npm dependencies, no install step (Node.js 22+ recommended)</li>
+<li>14 bundled strategy presets, e.g. <code>ma_cross</code>, <code>breakout</code>, <code>grid</code>, <code>mean_reversion</code>, <code>momentum_rotation</code>, <code>trend_band</code></li>
+<li>Configurable costs: commission, minimum fee, stamp tax, slippage; 100-share lots; optional T+1</li>
+<li>Input validation (unique dates, max 2,000 bars, ≥20 simulation bars) and a <code>dataQuality</code> section in every report</li>
+<li>JSON report: summary, risk metrics (Sharpe, Sortino, Calmar, max drawdown), trade statistics, equity curve</li>
+</ul></div>
+
+<div class="card"><h2>How it works</h2>
+<p>1. Unzip the kit and run the built-in checks (synthetic/offline checks only):</p>
+<pre>node verify.js</pre>
+<p>2. Run the synthetic demo, which writes <code>demo-report.json</code>:</p>
+<pre>node demo.js
+# or: npm run demo   /   npm test</pre>
+<p>3. Use your own daily bars (<code>date, open, high, low, close, volume</code>):</p>
+<pre>const { BacktestEngine } = require('./src/autotrade/backtest');
+const engine = new BacktestEngine({ initialCapital: 100000, commission: 0.0003,
+  minFee: 5, stampTax: 0.001, slippage: 0.001, positionSize: 0.2, tPlusOne: true });
+const report = engine.runWithBars('ma_cross', '000001', startDate, endDate, bars);
+// always inspect report.error and report.dataQuality</pre>
+<p class="tag">Example only</p> <small>'000001' is a placeholder six-digit code used by the bundled synthetic demo, not a recommendation. Default cost values are illustrative, not verified broker or tax rates.</small>
+</div>
+
+<div class="card"><h2>Interactive demo <span class="tag">SYNTHETIC DATA</span></h2>
+<p>A simplified in-browser illustration of a moving-average-cross backtest on the same deterministic synthetic bar formula the kit's demo uses (240 calendar-day bars, not real prices). This is a lightweight re-implementation for preview purposes, not the kit's full engine; numbers will differ from the kit's report.</p>
+<label>Fast MA <input id="f" type="number" value="5" min="2" max="50" style="width:70px"></label>
+<label>Slow MA <input id="s" type="number" value="20" min="3" max="120" style="width:70px"></label>
+<label>Position size <input id="p" type="number" value="0.2" step="0.05" min="0.05" max="1" style="width:70px"></label>
+<button onclick="runDemo()">Run synthetic backtest</button>
+<p><small>All values below are <b>synthetic example output</b> and say nothing about real market performance.</small></p>
+<div class="grid" id="out"></div>
+<canvas id="c" width="940" height="260" style="width:100%;border:1px solid #dde;border-radius:6px;margin-top:10px;background:#fff"></canvas>
+<small>Grey: synthetic price (left scale normalized). Blue: example equity curve.</small>
+</div>
+
+<div class="card"><h2>Screenshots &amp; example report <span class="tag">EXAMPLE DATA</span></h2>
+<p>The kit's JSON report can be rendered as an HTML report. Example rendered with synthetic, randomly generated data:</p>
+<p><a href="sample-report-v1.html">Open the example HTML report (EXAMPLE DATA) →</a></p>
+<img src="sample-report.png" alt="Example report screenshot (synthetic data)">
+</div>
+
+<div class="card"><h2>What this is NOT</h2><ul>
+<li>Not live trading software, not a brokerage or funded-account product</li>
+<li>Not investment advice; no returns guarantee. Simulated results do not predict future performance.</li></ul>
+<p>This page is a preview; the full source is included only in the downloadable kit.</p></div>
+</div>
+<footer>Educational software demo. Not investment advice. · All figures on this site are synthetic / example data.</footer>
+<script>
+function bars(){return Array.from({length:240},(_,i)=>{const c=30+i*0.015+3*Math.sin(i/8);return{o:c+0.1,c}})}
+function sma(a,n,i){if(i<n-1)return null;let s=0;for(let k=i-n+1;k<=i;k++)s+=a[k].c;return s/n}
+function runDemo(){
+ const F=+f.value,S=+s.value,P=+p.value,b=bars(),fee=x=>Math.max(5,x*0.0003);
+ let cash=100000,sh=0,eq=[],trades=[],entry=0,peak=0,mdd=0,pend=null;
+ for(let i=0;i<b.length;i++){
+  if(pend==='buy'&&!sh){const px=b[i].o*1.001;const q=Math.floor(cash*P/px/100)*100;if(q>0){cash-=q*px+fee(q*px);sh=q;entry=px}}
+  else if(pend==='sell'&&sh){const px=b[i].o*0.999,v=sh*px;cash+=v-fee(v)-v*0.001;trades.push(px-entry);sh=0}
+  pend=null;const a=sma(b,F,i),z=sma(b,S,i),a0=sma(b,F,i-1),z0=sma(b,S,i-1);
+  if(a&&z&&a0&&z0){if(a0<=z0&&a>z)pend='buy';if(a0>=z0&&a<z)pend='sell'}
+  const e=cash+sh*b[i].c;eq.push(e);peak=Math.max(peak,e);mdd=Math.max(mdd,(peak-e)/peak)}
+ const last=eq[eq.length-1],w=trades.filter(t=>t>0).length;
+ const m=[["Example final equity",last.toFixed(2)],["Example total return",((last/1e5-1)*100).toFixed(2)+"%"],["Example max drawdown",(mdd*100).toFixed(2)+"%"],["Closed trades (example)",trades.length],["Winning trades (example)",w]];
+ out.innerHTML=m.map(x=>`<div class="m">${x[0]}<b>${x[1]}</b><small>synthetic</small></div>`).join("");
+ const g=c.getContext("2d"),W=c.width,H=c.height;g.clearRect(0,0,W,H);
+ const line=(arr,col)=>{const mn=Math.min(...arr),mx=Math.max(...arr);g.strokeStyle=col;g.lineWidth=2;g.beginPath();arr.forEach((v,i)=>{const x=i/(arr.length-1)*W,y=H-10-(v-mn)/((mx-mn)||1)*(H-20);i?g.lineTo(x,y):g.moveTo(x,y)});g.stroke()};
+ line(b.map(x=>x.c),"#aab");line(eq,"#3563e9");g.fillStyle="#5b2c83";g.font="bold 14px sans-serif";g.fillText("SYNTHETIC DATA",10,20)}
+runDemo();
+</script></body></html>
